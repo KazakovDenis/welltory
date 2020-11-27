@@ -2,7 +2,7 @@ import abc
 import json
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Optional, Any, Union
+from typing import Optional, Any
 
 import jsonschema
 
@@ -11,10 +11,8 @@ from .logger import logger
 
 __all__ = 'validate_json_file', 'JsonContentValidator', 'validate_json_schema'
 
-PathType = Union[str, Path]
 
-
-def read_file(filename: PathType) -> Optional[str]:
+def read_file(filename: Path) -> Optional[str]:
     """Read a file content"""
     content = None
 
@@ -22,7 +20,7 @@ def read_file(filename: PathType) -> Optional[str]:
         with open(filename) as file:
             content = file.read()
     except FileNotFoundError:
-        logger.write(filename, 'No such file')
+        logger.write(filename.name, 'No such file')
 
     return content
 
@@ -38,8 +36,8 @@ class Validator(abc.ABC):
 
 class JsonFileValidator(Validator):
 
-    def __init__(self, filename: PathType):
-        self.filename = filename
+    def __init__(self, filename: Path):
+        self.filename = filename.name
         self.raw_content = read_file(filename)
         self.valid_content = None
         self.is_valid = self.validate()
@@ -60,7 +58,7 @@ class JsonFileValidator(Validator):
         return self.valid_content
 
 
-def validate_json_file(file_path: PathType) -> Any:
+def validate_json_file(file_path: Path) -> Any:
     """Check that the file is valid json"""
     return JsonFileValidator(file_path).get_content()
 
@@ -69,8 +67,8 @@ class JsonContentValidator(Validator):
 
     schema_field = 'event'
 
-    def __init__(self, filename: str, schemas: dict):
-        self.filename = filename
+    def __init__(self, filename: Path, schemas: dict):
+        self.filename = filename.name
         self.schemas = schemas
         self.schema = None
         self.content = validate_json_file(filename)
@@ -108,7 +106,7 @@ class JsonSchemaValidator(Validator):
     def __init__(self, schema_name: str, schema: Optional[dict], filename: Path, json_content: dict):
         self.schema_name = schema_name
         self.schema = schema
-        self.filename = filename
+        self.filename = filename.name
         self.content = json_content
         self.is_valid = self.validate()
 
