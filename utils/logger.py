@@ -2,6 +2,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+import config
+
 
 __all__ = 'Logger', 'logger'
 
@@ -23,4 +25,4 @@ class Logger:
         self._logger.error(msg)
 
 
-logger = Logger('json_validator', 'result.log')
+logger = Logger('json_validator', config.RESULT_FILE)
