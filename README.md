@@ -1,9 +1,18 @@
 # Welltory test task
 
-## Requirements
-Install requirements using pip:
+## Preparation
+Create a virtual environment
 ```shell script
-pip install -r requirements.txt
+python3 -m venv venv
+```
+and activate it
+```shell script
+source venv/bin/activate
+```
+
+Then install requirements using pip:
+```shell script
+pip3 install -r requirements.txt
 ```
 
 ## How to use
