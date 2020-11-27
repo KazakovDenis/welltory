@@ -2,17 +2,19 @@ import abc
 import json
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, Union
+
+import jsonschema
 
 from .logger import logger
 
 
 __all__ = 'validate_json_file', 'JsonContentValidator', 'validate_json_schema'
 
-PathType = Optional[str, Path]
+PathType = Union[str, Path]
 
 
-def read_file(filename: str) -> Optional[str]:
+def read_file(filename: PathType) -> Optional[str]:
     """Read a file content"""
     content = None
 
@@ -86,7 +88,7 @@ class JsonContentValidator(Validator):
             return False
 
         if self.schema not in self.schemas:
-            logger.write(self.filename, 'No such schema: %s' % self.schema)
+            logger.write(self.filename, 'No such schema specified in the file: "%s"' % self.schema)
             return False
 
         return True
@@ -96,26 +98,38 @@ class JsonContentValidator(Validator):
         if self.is_valid:
             return self.content
 
-    def get_schema(self) -> Optional[dict]:
+    def get_schema_name(self) -> Optional[str]:
         """Return content if valid"""
-        if self.is_valid:
-            return self.schema
+        return self.schema
 
 
 class JsonSchemaValidator(Validator):
 
-    def __init__(self, schema: dict, json_content: dict):
+    def __init__(self, schema_name: str, schema: Optional[dict], filename: Path, json_content: dict):
+        self.schema_name = schema_name
         self.schema = schema
+        self.filename = filename
         self.content = json_content
         self.is_valid = self.validate()
 
     def validate(self) -> bool:
-        """Check that json contains a reference to some scheme"""
+        """Check that the json matches the schema"""
 
+        try:
+            jsonschema.validate(self.content, self.schema)
+        except jsonschema.SchemaError:
+            schema_filename = self.schema_name + '.schema'
+            msg = f'The schema "{self.schema_name}" does not match the global convention'
+            logger.write(schema_filename, msg)
+            return False
+        except jsonschema.ValidationError as e:
+            msg = f'The content of the file does not match the schema "{self.schema_name}": {e.message}'
+            logger.write(self.filename, msg)
+            return False
 
         return True
 
 
-def validate_json_schema(schema: dict, filename: PathType):
-    """Check that json matches the scheme"""
-    return JsonSchemaValidator(schema, filename).is_valid
+def validate_json_schema(schema_name: str, schema: Optional[dict], filename: Path, json_content: dict):
+    """Check that json matches the schema"""
+    return JsonSchemaValidator(schema_name, schema, filename, json_content).is_valid

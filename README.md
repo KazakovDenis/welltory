@@ -13,4 +13,5 @@ python3 main.py
 ```
 then check the results in "result.log"  
   
-An example of "result.log"
+An example here: [result.log](https://github.com/KazakovDenis/welltory/blob/main/result.log)
+  

@@ -1,42 +1,42 @@
-import os
 from pathlib import Path
 from typing import Dict, Optional
 
+import config
 from utils import *
 
 
-EVENT_SRC = Path('task_folder', 'event').absolute()
-SCHEMA_SRC = Path('task_folder', 'schema').absolute()
-
-events = os.listdir(EVENT_SRC)
-schemas = os.listdir(SCHEMA_SRC)
-
-
-def get_schemas(source: Path) -> Dict[str, Optional[str]]:
+def get_schemas(source: Path) -> Dict[str, Optional[dict]]:
     """Read and save schemas"""
     schema_cache = {}
+    ext = '.schema'
 
-    for filename in schemas:
-        if filename.endswith('.schema'):
-            schema_name = filename.rsplit('.schema', maxsplit=1)[0]
+    for filename in config.schemas:
+        if filename.endswith(ext):
+            schema_name = filename.rsplit(ext, maxsplit=1)[0]
             schema = validate_json_file(source / filename)
             schema_cache[schema_name] = schema
             if not isinstance(schema, dict):
-                logger.write(filename, 'BAD SCHEMA')
+                msg = 'BAD SCHEMA. A JSON schema must be of type "dict" (Python) / "object" (Javascript)'
+                logger.write(filename, msg)
 
     return schema_cache
 
 
 def main():
     """Start validating"""
-    schema_cache = get_schemas(SCHEMA_SRC)
+    schema_cache = get_schemas(config.SCHEMA_SRC)
 
-    for filename in events:
-        validator = JsonContentValidator(EVENT_SRC / filename, schema_cache)
+    for filename in config.events:
+        validator = JsonContentValidator(filename, schema_cache)
         valid_content = validator.get_content()
+
         if valid_content:
-            schema = validator.get_schema()
-            validate_json_schema(schema, valid_content)
+            schema_name = validator.get_schema_name()
+            schema = schema_cache.get(schema_name)
+            if schema:
+                validate_json_schema(schema_name, schema, filename, valid_content)
+
+    print('Check the results in %s' % config.RESULT_FILE)
 
 
 if __name__ == '__main__':
